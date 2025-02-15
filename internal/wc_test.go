@@ -1,6 +1,8 @@
 package internal_test
 
 import (
+	"errors"
+	"os"
 	"testing"
 
 	"github.com/KylerWilson01/CCWC/internal"
@@ -15,7 +17,12 @@ func TestByteSize(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		record, err := internal.AnalyzeFile(test.filePath)
+		f, err := os.Open(test.filePath)
+		if err != nil {
+			panic(errors.New(internal.CouldNotOpenFileError))
+		}
+		defer f.Close()
+		record, err := internal.AnalyzeFile(f)
 		if err != nil {
 			t.Errorf("\nCould not open %s\n", test.filePath)
 		}
@@ -35,7 +42,12 @@ func TestLineCount(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		record, err := internal.AnalyzeFile(test.filePath)
+		f, err := os.Open(test.filePath)
+		if err != nil {
+			panic(errors.New(internal.CouldNotOpenFileError))
+		}
+		defer f.Close()
+		record, err := internal.AnalyzeFile(f)
 		if err != nil {
 			t.Errorf("\nCould not open %s\n", test.filePath)
 		}
@@ -55,13 +67,43 @@ func TestWordCount(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		record, err := internal.AnalyzeFile(test.filePath)
+		f, err := os.Open(test.filePath)
+		if err != nil {
+			panic(errors.New(internal.CouldNotOpenFileError))
+		}
+		defer f.Close()
+		record, err := internal.AnalyzeFile(f)
 		if err != nil {
 			t.Errorf("\nCould not open %s\n", test.filePath)
 		}
 
 		if record.Words != test.want {
 			t.Errorf("\nWant: %d\nGot: %d", test.want, record.Words)
+		}
+	}
+}
+
+func TestCharacterCount(t *testing.T) {
+	tests := []struct {
+		name, filePath string
+		want           int
+	}{
+		{"Correct word count", "testdata/test.txt", 339292},
+	}
+
+	for _, test := range tests {
+		f, err := os.Open(test.filePath)
+		if err != nil {
+			panic(errors.New(internal.CouldNotOpenFileError))
+		}
+		defer f.Close()
+		record, err := internal.AnalyzeFile(f)
+		if err != nil {
+			t.Errorf("\nCould not open %s\n", test.filePath)
+		}
+
+		if record.Characters != test.want {
+			t.Errorf("\nWant: %d\nGot: %d", test.want, record.Characters)
 		}
 	}
 }

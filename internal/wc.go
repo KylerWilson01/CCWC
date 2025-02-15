@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"io"
@@ -18,19 +19,14 @@ const (
 
 // Record holds information about a file
 type Record struct {
-	ByteSize int
-	Lines    int
-	Words    int
+	ByteSize   int
+	Lines      int
+	Words      int
+	Characters int
 }
 
 // AnalyzeFile gives the word count of a file with the given file path
-func AnalyzeFile(fp string) (*Record, error) {
-	f, err := os.Open(fp)
-	if err != nil {
-		return nil, errors.New(CouldNotOpenFileError)
-	}
-	defer f.Close()
-
+func AnalyzeFile(f *os.File) (*Record, error) {
 	fi, err := f.Stat()
 	if err != nil {
 		return nil, errors.New(CouldNotGetStatsError)
@@ -39,18 +35,19 @@ func AnalyzeFile(fp string) (*Record, error) {
 		ByteSize: int(fi.Size()),
 	}
 
-	file := make([]byte, fi.Size())
-
+	reader := bufio.NewReader(f)
 	for {
-		c, err := f.Read(file)
-		r.Lines += bytes.Count(file[:c], []byte{'\n'})
-		r.Words += len(bytes.Fields(file[:c]))
-
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, errors.New(ReadError)
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, err
 		}
+
+		r.Lines++
+		r.Words += len(bytes.Fields([]byte(line)))
+		r.Characters += len(bytes.Runes([]byte(line)))
 
 	}
 
